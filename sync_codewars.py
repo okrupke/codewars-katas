@@ -10,16 +10,18 @@ import shutil
 import argparse
 
 class CodewarsSyncer:
-    def __init__(self, username, repo_path):
+    def __init__(self, username, repo_path, debug=False):
         """
         Initialize the CodewarsSyncer.
         
         Args:
             username (str): Codewars username
             repo_path (str): Path to local GitHub repository
+            debug (bool): Enable debug mode to print detailed information
         """
         self.username = username
         self.repo_path = repo_path
+        self.debug = debug
         self.api_base_url = "https://www.codewars.com/api/v1"
         self.completed_katas = []
         self.languages_map = {
@@ -94,6 +96,15 @@ class CodewarsSyncer:
         
         self.completed_katas = all_challenges
         print(f"Found {len(all_challenges)} completed katas.")
+        
+        if self.debug:
+            print("\nCompleted katas details:")
+            for i, kata in enumerate(all_challenges, 1):
+                print(f"{i}. {kata.get('name')} (ID: {kata.get('id')}, Slug: {kata.get('slug')})")
+                print(f"   Completed in: {', '.join(kata.get('completedLanguages', []))}")
+                print(f"   Completed at: {kata.get('completedAt', 'Unknown')}")
+                print()
+        
         return all_challenges
     
     def get_challenge_details(self, challenge_id):
@@ -103,7 +114,18 @@ class CodewarsSyncer:
         if response.status_code != 200:
             print(f"Failed to fetch challenge details: {response.status_code}")
             return None
-        return response.json()
+        
+        challenge_details = response.json()
+        
+        if self.debug:
+            print(f"\nDetails for kata {challenge_details.get('name', 'Unknown')}:")
+            print(f"  Rank: {challenge_details.get('rank', {}).get('name', 'Unknown')}")
+            print(f"  Category: {challenge_details.get('category', 'Unknown')}")
+            print(f"  Languages: {', '.join(challenge_details.get('languages', []))}")
+            print(f"  Tags: {', '.join(challenge_details.get('tags', []))}")
+            print()
+        
+        return challenge_details
     
     def format_solution_file(self, challenge, language):
         """Format the solution file content."""
@@ -160,12 +182,19 @@ class CodewarsSyncer:
             file_name = f"{challenge.get('slug', 'unknown').replace('-', '_')}{extension}"
             file_path = os.path.join(dir_path, file_name)
             
+            if self.debug:
+                print(f"File path: {file_path}")
+                print(f"Exists: {os.path.exists(file_path)}")
+            
             if not os.path.exists(file_path):
                 print(f"Creating solution file for {challenge.get('name')} ({language})")
                 solution_content = self.format_solution_file(challenge_details, language)
                 
                 with open(file_path, 'w') as f:
                     f.write(solution_content)
+            else:
+                if self.debug:
+                    print(f"File already exists: {file_path}, skipping...")
     
     def commit_and_push(self, message=None):
         """Commit and push changes to GitHub."""
@@ -232,10 +261,11 @@ def main():
     parser.add_argument('--repo-path', help='Path to local GitHub repository', 
                         default=os.path.dirname(os.path.abspath(__file__)))
     parser.add_argument('--max-pages', type=int, help='Maximum number of pages to fetch', default=None)
+    parser.add_argument('--debug', action='store_true', help='Enable debug mode to print detailed information')
     
     args = parser.parse_args()
     
-    syncer = CodewarsSyncer(args.username, args.repo_path)
+    syncer = CodewarsSyncer(args.username, args.repo_path, args.debug)
     syncer.sync_all(args.max_pages)
 
 if __name__ == "__main__":
