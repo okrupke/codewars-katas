@@ -9,3 +9,17 @@
 */
 
 // Solution goes here
+
+function isPrime(num) {
+  // numbers <= 1 are no primes
+  if(num <= 1) return false;
+  // 2 is the only even prime number
+  if(num === 2) return true;
+  if(num % 2 == 0) return false;
+  // only test odd numbers from 3 to √num
+  let lim = Math.sqrt(num);
+  for (let i = 3; i <= lim; i += 2) {
+    if (num % i === 0) return false;
+  }
+  return true;
+}
