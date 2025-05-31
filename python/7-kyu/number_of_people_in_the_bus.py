@@ -8,3 +8,6 @@
 '''
 
 # Solution goes here
+def number(bus_stops):
+    return sum(on - off for on, off in bus_stops)  # Sum the net change (on - off) for each stop
+
